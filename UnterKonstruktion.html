@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Im Aufbau</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Comic+Neue:wght@400;700&display=swap');
+  html,body{margin:0;padding:0;height:100%;font-family:'Comic Sans MS','Comic Neue',Bubblegum,'Baloo 2',sans-serif;background:#faf7f0;display:flex;align-items:center;justify-content:center;touch-action:manipulation;}
+  .box{text-align:center;padding:40px;}
+  h1{font-size:28px;color:#4a4a4a;margin-bottom:10px;}
+  p{font-size:18px;color:#777;}
+  .icon{font-size:60px;margin-bottom:10px;}
+  a{display:inline-block;margin-top:24px;font-size:16px;color:#2fa32f;text-decoration:none;border:2px solid #2fa32f;border-radius:20px;padding:8px 20px;}
+  a:hover{background:#2fa32f;color:#fff;}
+</style>
+</head>
+<body>
+  <div class="box">
+    <div class="icon">🚧</div>
+    <h1 id="pageTitle">Im Aufbau</h1>
+    <p>Dieser Bereich ist noch nicht fertig.</p>
+    <a href="Startseite.html">Zurück zur Startseite</a>
+  </div>
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const title = params.get('titel');
+    if(title) document.getElementById('pageTitle').textContent = title;
+  </script>
+</body>
+</html>
