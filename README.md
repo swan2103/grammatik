@@ -1,2 +1,3 @@
 # grammatik
-Nominativ Akkusativ und Dativ
+Verben mit Nominativ Dativ und Akkusativ
+Präpositionen mit Dativ und Akkusativ
