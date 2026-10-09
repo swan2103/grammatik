@@ -51,18 +51,14 @@
   #prapLabel.show{transform:translate(-50%,-50%) scale(1);pointer-events:auto;cursor:pointer;}
 
   #sentenceArea{margin-top:6px;display:flex;flex-direction:column;align-items:center;gap:6px;min-height:50px;width:100%;max-width:640px;}
-  #ergText{font-size:calc(var(--stage-w)*0.045);color:#2a2a2a;text-align:center;background:#fff;border:3px solid var(--purple);border-radius:16px;padding:8px 18px;opacity:0;transform:scale(0.85);transition:opacity .25s, transform .25s;max-width:100%;overflow:hidden;}
-  #ergTextInner{display:inline-block;white-space:nowrap;}
-  #ergText.show{opacity:1;transform:scale(1);}
-  #ergText.yellowBorder{border-color:var(--yellow);}
   #sentenceRow{display:flex;align-items:center;gap:8px;width:100%;justify-content:center;}
   #slots{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;}
-  .slot{min-width:90px;height:38px;border:3px dashed #ccc;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:15px;padding:0 8px;}
+  .slot{min-width:90px;height:38px;border:3px solid #ccc;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:15px;padding:0 8px;background:#fff;}
   .slot.tile-subj{border-color:var(--green);}
   .slot.tile-verb{border-color:#999;}
   .slot.tile-akk{border-color:var(--yellow);}
-  .slot.tile-prap{border-color:var(--purple);}
   .slot.filled{border-style:solid;background:#fff;}
+  .slot.dotted{border-style:dotted;background:#fff;}
   .slot.hop{animation:hop .5s;}
   .slot.shake{animation:shake .3s;}
   @keyframes hop{0%{transform:scale(1);}40%{transform:scale(1.12);}100%{transform:scale(1);}}
@@ -72,7 +68,6 @@
   .tile.tile-subj{border-color:var(--green);}
   .tile.tile-verb{border-color:#999;}
   .tile.tile-akk{border-color:var(--yellow);}
-  .tile.tile-prap{border-color:var(--purple);}
   .tile.dragging{opacity:.5;}
   .tile.hidden{display:none;}
 
@@ -110,7 +105,7 @@
 <div id="printSheet"></div>
 <div id="rotateWrapper">
 <div id="app">
-  <div id="versionTag">v6.7</div>
+  <div id="versionTag">v6.8</div>
 
   <div id="endScreen">
     <h1 id="endTitle">Gut gemacht!</h1>
@@ -137,7 +132,6 @@
         <div id="slots"></div>
       </div>
       <div id="tiles"></div>
-      <div id="ergText"><span id="ergTextInner"></span></div>
       <div id="bottomBar">
         <div id="voiceRow">
           <button id="replaySpeakerBtn" class="iconBtn speakerBtn" title="Nochmal hören">🔊</button>
@@ -185,7 +179,6 @@ const stageImg = document.getElementById('stageImg');
 const targetMaskImg = document.getElementById('targetMaskImg');
 const hitZoneTarget = document.getElementById('hitZoneTarget');
 const prapLabel = document.getElementById('prapLabel');
-const ergText = document.getElementById('ergText');
 const slotsEl = document.getElementById('slots');
 const tilesEl = document.getElementById('tiles');
 const voiceRow = document.getElementById('voiceRow');
@@ -612,37 +605,40 @@ function onColorMatched(){
   buildSentencePuzzle();
 }
 
-// ===================== Satzbau (Subjekt/Verb/Akk/Präp.-Ergänzung) =====================
-// Satzbauregel: Das Verb steht immer an Position 2. Die erste und letzte
-// Position sind "flexibel" - dort darf entweder das Subjekt oder die
-// präpositionale Ergänzung hin (beide Reihenfolgen sind im Deutschen
-// korrekt). Ein eventuelles Akkusativobjekt steht dazwischen, direkt
-// nach dem Verb.
-// Gueltige Gesamtmuster: das Verb steht immer an Position 2, und das
-// SUBJEKT steht immer unmittelbar neben dem Verb (davor oder dahinter) -
-// nicht das Akkusativobjekt. Nur zwei Reihenfolgen sind damit korrekt:
-//   A) Subjekt, Verb, (Akk,) Präp.-Ergänzung
-//   B) Präp.-Ergänzung, Verb, Subjekt, (Akk)
-function sentencePatterns(hasAkk){
-  return hasAkk
-    ? [['subj','verb','akk','prap'], ['prap','verb','subj','akk']]
-    : [['subj','verb','prap'], ['prap','verb','subj']];
-}
+// ===================== Satzbau (feste Standardreihenfolge) =====================
+// Standardreihenfolge: Subjekt, Verb, (Akkusativobjekt,) präpositionale
+// Ergänzung - immer in dieser Reihenfolge, keine freie Umstellung (das
+// kommt erst in einer spaeteren Lektion). Die praepositionale Ergaenzung
+// steht als letztes Kaestchen von Anfang an bereits ausgefuellt da
+// (gepunkteter Rahmen in der Farbe des zugehoerigen Farbflecks), da sie
+// im vorigen Schritt schon erarbeitet wurde.
 function buildSentencePuzzle(){
   slotsEl.innerHTML=''; tilesEl.innerHTML='';
   const hasAkk = !!current.akk;
-  const count = hasAkk ? 4 : 3;
+  const order = hasAkk ? ['subj','verb','akk','prap'] : ['subj','verb','prap'];
 
-  for(let i=0;i<count;i++){
+  order.forEach(role=>{
     const slot = document.createElement('div');
     slot.className = 'slot';
+    slot.dataset.role = role;
+    if(role==='prap'){
+      slot.classList.add('filled','dotted');
+      slot.style.borderColor = current.color==='yellow' ? 'var(--yellow)' : 'var(--purple)';
+      slot.textContent = current.prap_text;
+      slot.dataset.answer = current.prap_text;
+    } else {
+      slot.classList.add('tile-'+role);
+    }
     slotsEl.appendChild(slot);
-  }
+  });
+
+  // Die praepositionale Ergaenzung wird sofort vorgelesen, da sie schon
+  // feststeht.
+  speak(current.prap_text, {interrupt:true});
 
   const tileDefs = [
     {type:'subj', text:current.subj},
-    {type:'verb', text:current.verb},
-    {type:'prap', text:current.prap_text}
+    {type:'verb', text:current.verb}
   ];
   if(hasAkk) tileDefs.push({type:'akk', text:current.akk});
 
@@ -654,20 +650,6 @@ function buildSentencePuzzle(){
     tile.dataset.text = td.text;
     tilesEl.appendChild(tile);
     makeDraggableTile(tile);
-  });
-}
-// Prueft, ob ein Wort vom Typ "type" an Position idx stehen DARF, unter
-// Beruecksichtigung dessen, was an den anderen Positionen schon steht -
-// akzeptiert wird, wenn mindestens ein gueltiges Gesamtmuster dazu passt.
-function isValidPlacement(idx, type){
-  const hasAkk = slotsEl.children.length === 4;
-  const filled = [...slotsEl.children].map(s=>s.classList.contains('filled') ? s.dataset.type : null);
-  return sentencePatterns(hasAkk).some(p=>{
-    if(p[idx] !== type) return false;
-    for(let j=0;j<p.length;j++){
-      if(j!==idx && filled[j] && filled[j]!==p[j]) return false;
-    }
-    return true;
   });
 }
 function makeDraggableTile(el){
@@ -693,12 +675,10 @@ function makeDraggableTile(el){
       if(ev.pointerId!==dragPointerId) return;
       const dropEl = document.elementFromPoint(ev.clientX, ev.clientY);
       const slot = dropEl ? dropEl.closest('.slot') : null;
-      const slotIdx = slot ? [...slotsEl.children].indexOf(slot) : -1;
-      if(slot && !slot.classList.contains('filled') && isValidPlacement(slotIdx, el.dataset.type)){
+      if(slot && !slot.classList.contains('filled') && slot.dataset.role === el.dataset.type){
         slot.textContent = el.dataset.text;
         slot.dataset.answer = el.dataset.text;
-        slot.dataset.type = el.dataset.type;
-        slot.classList.add('filled', 'tile-'+el.dataset.type);
+        slot.classList.add('filled');
         slot.classList.add('hop');
         setTimeout(()=>slot.classList.remove('hop'), 500);
         el.classList.add('hidden');
@@ -716,33 +696,18 @@ function makeDraggableTile(el){
     registerDragCleanup(cleanupDrag);
   });
 }
-// Verkleinert den Satz per CSS-Skalierung so weit, dass er immer in eine
-// Zeile passt, egal wie lang er ist - robuster als eine feste
-// Schriftgroesse, die bei kurzen Saetzen zu klein und bei langen zu
-// gross waere.
-function fitErgText(){
-  const inner = document.getElementById('ergTextInner');
-  inner.style.transform = 'scale(1)';
-  const available = ergText.clientWidth - 36;
-  const natural = inner.scrollWidth;
-  if(available>0 && natural>available){
-    const scale = Math.max(0.45, available/natural);
-    inner.style.transform = 'scale('+scale.toFixed(3)+')';
-  }
-}
-window.addEventListener('resize', ()=>{ if(current && current.fullSentence) fitErgText(); });
+// Sobald alle Kaestchen gefuellt sind: erstes Kaestchen gross schreiben,
+// letztes Kaestchen bekommt den Punkt - dann den ganzen Satz vorlesen.
 function checkSentenceDone(){
-  const allFilled = [...slotsEl.children].every(s=>s.classList.contains('filled'));
-  if(!allFilled) return;
-  let sentence = [...slotsEl.children].map(s=>s.dataset.answer).join(' ');
-  sentence = sentence.charAt(0).toUpperCase()+sentence.slice(1)+'.';
+  const slotsArr = [...slotsEl.children];
+  if(!slotsArr.every(s=>s.classList.contains('filled'))) return;
+  const first = slotsArr[0];
+  const last = slotsArr[slotsArr.length-1];
+  first.textContent = first.dataset.answer.charAt(0).toUpperCase()+first.dataset.answer.slice(1);
+  last.textContent = last.dataset.answer + '.';
+  const sentence = slotsArr.map(s=>s.textContent).join(' ');
   current.fullSentence = sentence;
   hintText.textContent = '';
-  const ergInner = document.getElementById('ergTextInner');
-  ergInner.textContent = sentence;
-  fitErgText();
-  ergText.classList.add('show');
-  ergText.classList.toggle('yellowBorder', current.color==='yellow');
   voiceRow.style.display='flex';
   speak(sentence, {interrupt:true});
   setTimeout(()=>{ nextBtn.style.visibility='visible'; }, Math.min(4000, 700+sentence.length*70));
@@ -778,9 +743,6 @@ async function startRound(item){
   playbackBtn.classList.remove('ready');
   micBtn.classList.remove('recording');
   paletteEl.innerHTML='';
-  document.getElementById('ergTextInner').textContent='';
-  document.getElementById('ergTextInner').style.transform='scale(1)';
-  ergText.classList.remove('show','yellowBorder');
   slotsEl.innerHTML=''; tilesEl.innerHTML='';
   current.fullSentence = null;
   prapLabel.textContent=''; prapLabel.classList.remove('show');
